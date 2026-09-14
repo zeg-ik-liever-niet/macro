@@ -116,6 +116,7 @@ export function AgentSessionProvider(
           retryLoad: live.retry,
           turn,
           issue: live.issue,
+          selectModel: live.selectModel,
           sendNext,
           interactions,
           queue,

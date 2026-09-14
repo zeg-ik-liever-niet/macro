@@ -16,6 +16,7 @@
  * they already handle while the GET is in flight.
  */
 
+import { AgentSession } from '@core/agent-session/AgentSession';
 import { markMessageSent } from '@core/util/message-send-motion';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
 import type {
@@ -23,6 +24,8 @@ import type {
   PromptAttachment,
 } from '@service-agent-harness/generated/schemas';
 import { type Accessor, createSignal } from 'solid-js';
+import { effortConfigOption } from '../state/session-config';
+import { confirmSessionControl } from './confirm-session-control';
 
 /**
  * Placeholder ids are prefixed so a session id can never be mistaken for one:
@@ -58,6 +61,8 @@ export type StartPendingSessionOptions = {
   attachments?: PromptAttachment[];
   /** Model to run on instead of the persona's, set as the session is created. */
   modelOverride?: string;
+  /** Opaque harness setting confirmed before the first prompt. */
+  effortOverride?: { configId: string; value: string };
   /**
    * Explicit GitHub repository for the managed Cursor session.
    */
@@ -99,6 +104,45 @@ export function startPendingSession(
         return;
       }
       const id = result.value.session.id;
+      if (options.modelOverride || options.effortOverride) {
+        const session = AgentSession.acquire(id);
+        try {
+          await session.load();
+          if (options.modelOverride) {
+            await confirmSessionControl(session, {
+              type: 'setModel',
+              model: options.modelOverride,
+            });
+          }
+          if (options.effortOverride) {
+            const snapshot = await session.snapshot();
+            const effort = effortConfigOption(snapshot.metadata.configOptions);
+            if (
+              effort?.id !== options.effortOverride.configId ||
+              !effort.options.some(
+                (option) => option.value === options.effortOverride?.value
+              )
+            ) {
+              throw new Error(
+                'The selected effort is no longer available for this model.'
+              );
+            }
+            await confirmSessionControl(session, {
+              type: 'setConfigOption',
+              ...options.effortOverride,
+            });
+          }
+        } catch (error) {
+          setError(
+            error instanceof Error
+              ? error.message
+              : 'The selected settings could not be applied.'
+          );
+          return;
+        } finally {
+          session.release();
+        }
+      }
       const prompt = options.prompt?.trim() ?? '';
       if (prompt || options.attachments?.length) {
         const delivered = await agentHarnessServiceClient.control(id, {

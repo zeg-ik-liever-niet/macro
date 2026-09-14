@@ -237,14 +237,7 @@ function AgentsWorkspace(props: { initialRoute?: AgentsRoute }) {
     }
   };
   const startConversation = (start: StartConversation) => {
-    const id = startPendingSession({
-      botId: start.botId,
-      prompt: start.prompt,
-      attachments: start.attachments,
-      modelOverride: start.modelOverride,
-      repoUrl: start.repoUrl,
-      repoBranch: start.repoBranch,
-    });
+    const id = startPendingSession(start);
     openConversation(
       { id, type: 'agent_session' },
       undefined,

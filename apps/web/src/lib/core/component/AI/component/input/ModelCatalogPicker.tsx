@@ -3,7 +3,14 @@ import CaretRight from '@phosphor/caret-right.svg';
 import CheckIcon from '@phosphor/check.svg';
 import MagnifyingGlassIcon from '@phosphor/magnifying-glass.svg';
 import { cn, Dropdown } from '@ui';
-import { createMemo, createSignal, For, type JSX, Show } from 'solid-js';
+import {
+  type Component,
+  createMemo,
+  createSignal,
+  For,
+  type JSX,
+  Show,
+} from 'solid-js';
 import { ModelIcon } from '../ProviderIcon';
 import {
   buildModelCatalog,
@@ -18,6 +25,7 @@ type ModelCatalogPickerProps = {
   value: string | null;
   options: CatalogModelOption[];
   onSelect: (id: string) => void;
+  modelRow?: Component<ModelRowProps>;
   disabled?: boolean;
   pending?: boolean;
   triggerLabel?: JSX.Element;
@@ -31,16 +39,21 @@ type ModelCatalogPickerProps = {
   placement?: 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end';
 };
 
-function ModelRow(props: {
+export type ModelRowProps = {
   option: CatalogModelOption;
   selected: boolean;
+  disabled?: boolean;
   /** Trailing muted text, e.g. the family a search hit belongs to. */
   hint?: string;
   onSelect: () => void;
-}) {
+  onClose?: () => void;
+};
+
+export function ModelRow(props: ModelRowProps) {
   return (
     <Dropdown.Item
       closeOnSelect
+      disabled={props.disabled}
       class={cn('h-8 gap-2', props.selected && 'bg-ink/5 text-ink font-medium')}
       title={props.option.description ?? props.option.label}
       onSelect={props.onSelect}
@@ -73,6 +86,7 @@ function focusSearchAfterMenuOpen(input: () => HTMLInputElement | undefined) {
 }
 
 export function ModelCatalogPicker(props: ModelCatalogPickerProps) {
+  const [open, setOpen] = createSignal(false);
   let searchRef: HTMLInputElement | undefined;
 
   const selected = () =>
@@ -80,7 +94,11 @@ export function ModelCatalogPicker(props: ModelCatalogPickerProps) {
   const displayValue = () => selected()?.label ?? props.placeholder ?? 'Model';
 
   return (
-    <Dropdown placement={props.placement ?? 'top-start'}>
+    <Dropdown
+      open={open()}
+      onOpenChange={setOpen}
+      placement={props.placement ?? 'top-start'}
+    >
       <Dropdown.Trigger
         variant="ghost"
         size="sm"
@@ -90,7 +108,11 @@ export function ModelCatalogPicker(props: ModelCatalogPickerProps) {
         )}
         aria-label={props.ariaLabel}
         aria-busy={props.pending || undefined}
-        title={displayValue()}
+        title={
+          typeof props.triggerLabel === 'string'
+            ? props.triggerLabel
+            : displayValue()
+        }
         disabled={props.disabled || props.pending}
       >
         <ModelIcon model={props.value} />
@@ -114,7 +136,12 @@ export function ModelCatalogPicker(props: ModelCatalogPickerProps) {
         <ModelCatalogMenu
           value={props.value}
           options={props.options}
-          onSelect={props.onSelect}
+          onSelect={(id) => {
+            props.onSelect(id);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+          modelRow={props.modelRow}
           emptyMessage={props.emptyMessage}
           searchPlaceholder={props.searchPlaceholder}
           searchRef={(element) => {
@@ -132,6 +159,7 @@ export function ModelCatalogPicker(props: ModelCatalogPickerProps) {
 export function ModelCatalogMenu(
   props: Pick<
     ModelCatalogPickerProps,
+    | 'modelRow'
     | 'value'
     | 'options'
     | 'onSelect'
@@ -140,8 +168,10 @@ export function ModelCatalogMenu(
     | 'children'
   > & {
     searchRef?: (element: HTMLInputElement) => void;
+    onClose?: () => void;
   }
 ) {
+  const Row = props.modelRow ?? ModelRow;
   const [query, setQuery] = createSignal('');
   const normalizedQuery = () => query().trim().toLowerCase();
   const filtered = createMemo(() => {
@@ -203,8 +233,9 @@ export function ModelCatalogMenu(
                 <Dropdown.GroupLabel>Recommended</Dropdown.GroupLabel>
                 <For each={catalog().recommended}>
                   {(option) => (
-                    <ModelRow
+                    <Row
                       option={option}
+                      onClose={props.onClose}
                       hint={modelFamilyHint(option)}
                       selected={option.id === props.value}
                       onSelect={() => props.onSelect(option.id)}
@@ -216,7 +247,7 @@ export function ModelCatalogMenu(
 
             <Show when={extraCount() > 0}>
               <Dropdown.Group>
-                <Dropdown.Sub>
+                <Dropdown.Sub overlap>
                   <Dropdown.SubTrigger>
                     <span class="truncate">More models</span>
                     <span class="flex shrink-0 items-center gap-1 text-xs text-ink-extra-muted">
@@ -242,8 +273,9 @@ export function ModelCatalogMenu(
                             </Show>
                             <For each={family.options}>
                               {(option) => (
-                                <ModelRow
+                                <Row
                                   option={option}
+                                  onClose={props.onClose}
                                   selected={option.id === props.value}
                                   onSelect={() => props.onSelect(option.id)}
                                 />
@@ -268,8 +300,9 @@ export function ModelCatalogMenu(
           </Dropdown.GroupLabel>
           <For each={filtered()}>
             {(option) => (
-              <ModelRow
+              <Row
                 option={option}
+                onClose={props.onClose}
                 hint={modelFamilyHint(option)}
                 selected={option.id === props.value}
                 onSelect={() => props.onSelect(option.id)}
