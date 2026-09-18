@@ -273,7 +273,7 @@ export type CallStatus = StorageCallStatus;
 
 export type CallEntity = EntityBase & {
   type: 'call';
-  channelId: string;
+  channelId?: string | null;
   channelName?: string;
   isActive: boolean;
   status: CallStatus;
@@ -281,6 +281,7 @@ export type CallEntity = EntityBase & {
   attended: boolean;
   durationMs?: number;
   participantIds: string[];
+  participantNames?: Record<string, string>;
   summary?: string;
   properties?: SoupProperty[];
 };

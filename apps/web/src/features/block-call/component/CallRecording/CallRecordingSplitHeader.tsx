@@ -3,7 +3,8 @@ import {
   ChatWithAgentIcon,
   openChatWithAgent,
 } from '@app/features/chat/ChatWithAgentButton';
-import { useCall } from '@channel/Call/use-call';
+import { getMeetingPath } from '@channel/Call/call-link';
+import { joinChannelCall } from '@channel/Call/join-channel-call';
 import {
   type BlockTool,
   ResponsiveBlockToolbar,
@@ -26,7 +27,9 @@ import { isMobile } from '@core/mobile/isMobile';
 import { buildEntityData } from '@entity';
 import PhoneCallIcon from '@phosphor/phone-call.svg';
 import IconShared from '@phosphor/share.svg';
-import type { CallRecord } from '@service-storage/generated/schemas/callRecord';
+import { useCallLinkQuery } from '@queries/call/meetings';
+import type { CallRecord } from '@service-call/client';
+import { useNavigate } from '@solidjs/router';
 import { Button } from '@ui';
 import { type Accessor, Show } from 'solid-js';
 
@@ -54,7 +57,22 @@ export function CallRecordingSplitHeader(props: {
   const blockId = useBlockId();
   const shareCtx = useShareDialogContext();
   const callName = () => record().customName ?? record().channelName ?? 'Call';
-  const call = useCall(() => record().channelId);
+  const navigate = useNavigate();
+  const meeting = useCallLinkQuery(() =>
+    record().channelId ? undefined : record().callId
+  );
+  const shareToken = () =>
+    meeting.isSuccess ? meeting.data?.shareToken : undefined;
+  const canCallAgain = () => Boolean(record().channelId || shareToken());
+  const callAgain = () => {
+    const channelId = record().channelId;
+    if (channelId) {
+      void joinChannelCall(channelId);
+      return;
+    }
+    const token = shareToken();
+    if (token) navigate(`${getMeetingPath(token)}?join=true`);
+  };
 
   const shareTool: BlockTool = {
     label: 'Share',
@@ -135,7 +153,7 @@ export function CallRecordingSplitHeader(props: {
         <div class="-order-1">
           <BlockLiveIndicators />
         </div>
-        <Show when={!isMobile() && !record().isActive}>
+        <Show when={!isMobile() && !record().isActive && canCallAgain()}>
           <div class="order-[900] flex items-center">
             <HeaderIsland>
               <Button
@@ -144,7 +162,7 @@ export function CallRecordingSplitHeader(props: {
                 size="icon-xs"
                 class="bg-surface"
                 tooltip="Call Again"
-                onClick={() => call.joinCall()}
+                onClick={callAgain}
               >
                 <PhoneCallIcon class="size-4" />
               </Button>
@@ -162,8 +180,7 @@ export function CallRecordingSplitHeader(props: {
         id={blockId}
         itemType="call"
         name={callName()}
-        // Generic chrome can't reconstruct a CallEntity (it lacks the
-        // channelId), so supply it for the menu's entity-gated items.
+        // Supply the record's current status and optional channel association.
         entity={buildEntityData({
           id: record().callId,
           name: callName(),

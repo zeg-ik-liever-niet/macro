@@ -10,6 +10,7 @@ import { InviteLinksPortal } from '@app/features/gtm-invite/InviteLinksPortal';
 import { InviteWelcome } from '@app/features/gtm-invite/InviteWelcome';
 import { usePendingInviteRedemption } from '@app/features/gtm-invite/usePendingInviteRedemption';
 import { GlobalShareInboxConflictDialog } from '@app/features/inbox/ShareInboxConflictDialog';
+import { MeetingRoute } from '@app/features/meetings/meeting-route';
 import { usePendingNotificationNavigationEffect } from '@app/features/notifications/PendingNotificationNavigationEffect';
 import { InteractiveOnboardingModal } from '@app/features/onboarding/InteractiveOnboardingModal';
 import MobileWebSignup from '@app/features/onboarding/MobileWebSignup';
@@ -30,6 +31,7 @@ import { globalSplitManager } from '@app/signal/splitLayout';
 import { IncomingCallEvents } from '@block-call/sidebar/incoming-calls';
 import { CallProvider } from '@channel/Call/CallContext';
 import { CallStartedNotifier } from '@channel/Call/CallStartedNotifier';
+import { isMeetingPath } from '@channel/Call/call-link';
 import { CallKitSync } from '@channel/Call/use-callkit';
 import { GlobalAppStateProvider } from '@components/app/GlobalAppState';
 import { Layout } from '@components/app/Layout';
@@ -95,6 +97,7 @@ import {
   type RoutePreloadFunc,
   Router,
   type RouterProps,
+  type RouteSectionProps,
   useLocation,
 } from '@solidjs/router';
 import {
@@ -227,6 +230,7 @@ function OnboardingRoute() {
 }
 
 const ROUTES: RouteDefinition[] = [
+  { path: '/meet/:shareToken', component: MeetingRoute },
   {
     path: '/task-slug/:taskSlug',
     component: TaskRoute,
@@ -566,6 +570,17 @@ function InitialInteractiveOnboardingModal() {
   );
 }
 
+/** Meeting links have a focused shell and never enter app onboarding. */
+function AppRouteLayout(props: RouteSectionProps) {
+  const location = useLocation();
+  return (
+    <Show when={!isMeetingPath(location.pathname)} fallback={props.children}>
+      <Layout {...props} />
+      <InitialInteractiveOnboardingModal />
+    </Show>
+  );
+}
+
 export function Root() {
   setHotkeyRoot(useHotKeyRoot());
 
@@ -617,7 +632,7 @@ export function Root() {
                                 <Suspense>
                                   <IsomorphicRouter
                                     transformUrl={transformShortIdInUrlPathname}
-                                    root={Layout}
+                                    root={AppRouteLayout}
                                     rootPreload={rootPreload}
                                     base={ROUTER_BASE}
                                   >
@@ -628,7 +643,6 @@ export function Root() {
                                     }}
                                   </IsomorphicRouter>
                                 </Suspense>
-                                <InitialInteractiveOnboardingModal />
                                 <ToastRegion />
                               </SearchProvider>
                             </QuickAccessProvider>

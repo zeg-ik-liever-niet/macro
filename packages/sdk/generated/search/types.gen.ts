@@ -296,7 +296,7 @@ export type CallRecordMetadata = {
 export type CallRecordSearchResponseItem = {
     call_id: string;
     call_search_results: Array<CallRecordSearchResult>;
-    channel_id: string;
+    channel_id?: string | null;
     id: string;
     name?: string | null;
     owner_id: string;
@@ -1735,7 +1735,7 @@ export type SearchGotoAgentSession = {
 };
 
 export type SearchGotoCallRecord = {
-    channel_id: string;
+    channel_id?: string | null;
     ended_at?: string | null;
     participant_ids: Array<string>;
     sequence_num: number;
@@ -1875,7 +1875,7 @@ export type SimpleCalendarEventSearchResponseBaseItemHumanReadableTimestamp = {
 
 export type SimpleCallRecordSearchResponseBaseItemHumanReadableTimestamp = {
     call_id: string;
-    channel_id: string;
+    channel_id?: string | null;
     channel_name?: string | null;
     duration_ms: number;
     /**

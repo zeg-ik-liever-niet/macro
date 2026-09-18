@@ -1792,6 +1792,8 @@ where
 pub struct GraphqlSoupCallParticipant {
     /// The identifier of the user.
     user_id: String,
+    /// Guest display name when no Macro profile exists.
+    display_name: Option<String>,
     /// The joined timestamp in RFC 3339 format.
     joined_at: String,
     /// The left timestamp in RFC 3339 format.
@@ -1803,6 +1805,7 @@ impl GraphqlSoupCallParticipant {
     pub fn new(value: &SoupCallRecordParticipant) -> Self {
         Self {
             user_id: value.user_id.clone(),
+            display_name: value.display_name.clone(),
             joined_at: value.joined_at.to_rfc3339(),
             left_at: value.left_at.map(|ts| ts.to_rfc3339()),
         }
@@ -1845,10 +1848,10 @@ where
     async fn metadata(&self) -> GraphqlEntityMetadata {
         GraphqlEntityMetadata {
             owner_id: Some(self.0.created_by.clone()),
-            parent: Some(graphql_entity(
-                model_entity::EntityType::Channel,
-                self.0.channel_id,
-            )),
+            parent: self
+                .0
+                .channel_id
+                .map(|id| graphql_entity(model_entity::EntityType::Channel, id)),
             created_at: Some(self.0.started_at.to_rfc3339()),
             updated_at: self.0.ended_at.map(|ts| ts.to_rfc3339()),
             viewed_at: None,
@@ -1857,8 +1860,8 @@ where
     }
 
     /// The identifier of the channel.
-    async fn channel_id(&self) -> ID {
-        ID(self.0.channel_id.to_string())
+    async fn channel_id(&self) -> Option<ID> {
+        self.0.channel_id.map(|id| ID(id.to_string()))
     }
 
     /// The channel name.

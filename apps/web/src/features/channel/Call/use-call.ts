@@ -276,8 +276,7 @@ export function useCall(channelId: () => string, options?: UseCallOptions) {
         if (cancelled) return;
 
         await callCtx.connectSession(tokenResponse, {
-          channelTitle:
-            channelsCtx.channelsById()[tokenResponse.channelId]?.name ?? null,
+          channelTitle: channelsCtx.channelsById()[id]?.name ?? null,
         });
         if (cancelled) return;
 

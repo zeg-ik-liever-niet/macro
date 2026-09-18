@@ -2092,7 +2092,7 @@ export interface CallRecordSearchResponseItemWithMetadata {
   name?: string | null;
   owner_id: string;
   call_id: string;
-  channel_id: string;
+  channel_id?: string | null;
   participant_ids: string[];
   call_search_results: CallRecordSearchResult[];
 }
