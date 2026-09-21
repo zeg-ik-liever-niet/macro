@@ -1663,7 +1663,11 @@ export type UpsertEmailFilterResponse = {
 
 export type UpsertScheduledRequest = {
     /**
-     * The time to send the message (ISO 8601 format)
+     * Per-message signature override; absent uses the inbox's send defaults.
+     */
+    include_signature?: boolean | null;
+    /**
+     * The time to send the message (ISO 8601 format).
      */
     send_time: string;
 };
@@ -2245,7 +2249,9 @@ export type UpsertScheduledMessageData = {
 };
 
 export type UpsertScheduledMessageErrors = {
+    400: ErrorResponse;
     401: ErrorResponse;
+    403: ErrorResponse;
     404: ErrorResponse;
     500: ErrorResponse;
 };
@@ -2273,6 +2279,7 @@ export type DeleteScheduledDraftData = {
 export type DeleteScheduledDraftErrors = {
     400: ErrorResponse;
     401: ErrorResponse;
+    403: ErrorResponse;
     404: ErrorResponse;
     500: ErrorResponse;
 };
