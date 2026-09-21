@@ -71,7 +71,7 @@ export function CallRecordingSplitHeader(props: {
       return;
     }
     const token = shareToken();
-    if (token) navigate(`${getMeetingPath(token)}?join=true`);
+    if (token) navigate(getMeetingPath(token));
   };
 
   const shareTool: BlockTool = {
