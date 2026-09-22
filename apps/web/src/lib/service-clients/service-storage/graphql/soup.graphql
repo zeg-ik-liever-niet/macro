@@ -257,6 +257,11 @@ fragment SoupItemFields on GraphqlSoupEntity {
 		attended
 		participants {
 			userId
+			joinedAt
+			leftAt
+		}
+		guests {
+			id
 			displayName
 			joinedAt
 			leftAt
