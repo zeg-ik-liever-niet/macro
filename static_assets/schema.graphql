@@ -4166,6 +4166,10 @@ type GraphqlSoupCall implements GraphqlSoupEntity {
 	"""
 	participants: [GraphqlSoupCallParticipant!]!
 	"""
+	Non-account guests who attended the call.
+	"""
+	guests: [GraphqlSoupCallGuest!]!
+	"""
 	Properties assigned to this entity that the authenticated user may view.
 	"""
 	properties: [GraphqlProperty!]!
@@ -4194,6 +4198,28 @@ type GraphqlSoupCall implements GraphqlSoupEntity {
 }
 
 """
+GraphQL representation of a non-account call guest.
+"""
+type GraphqlSoupCallGuest {
+	"""
+	Opaque guest identity; matches the guest's transcript speaker id.
+	"""
+	id: ID!
+	"""
+	Guest-provided display name.
+	"""
+	displayName: String!
+	"""
+	The joined timestamp in RFC 3339 format.
+	"""
+	joinedAt: String!
+	"""
+	The left timestamp in RFC 3339 format.
+	"""
+	leftAt: String
+}
+
+"""
 GraphQL representation of the soup call participant.
 """
 type GraphqlSoupCallParticipant {
@@ -4201,10 +4227,6 @@ type GraphqlSoupCallParticipant {
 	The identifier of the user.
 	"""
 	userId: String!
-	"""
-	Guest display name when no Macro profile exists.
-	"""
-	displayName: String
 	"""
 	The joined timestamp in RFC 3339 format.
 	"""

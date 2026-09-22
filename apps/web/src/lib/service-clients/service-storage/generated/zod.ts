@@ -2219,6 +2219,31 @@ export const getCallRecordResponse = zod
       .datetime({})
       .nullish()
       .describe('When the call ended (None if still active).'),
+    guests: zod
+      .array(
+        zod
+          .object({
+            displayName: zod.string().describe('Guest-provided display name.'),
+            id: zod
+              .uuid()
+              .describe(
+                "A non-account guest of a single call session.\n\nThe id doubles as the guest's RTC participant identity, so identities are\nopaque UUIDs and never share a namespace (or a column) with Macro user\nids. Only the server mints them; Macro users keep `macro|…` identities,\nso an RTC identity classifies as exactly one of the two."
+              ),
+            joinedAt: zod.iso
+              .datetime({})
+              .describe('When the guest joined the call.'),
+            leftAt: zod.iso
+              .datetime({})
+              .nullish()
+              .describe(
+                'When the guest left (None if still in an active call).'
+              ),
+          })
+          .describe('A non-account guest as returned in a [`CallRecord`].')
+      )
+      .describe(
+        'Non-account guests (both active and historic). Guests only ever exist\non standalone meeting calls, never on channel calls.'
+      ),
     isActive: zod
       .boolean()
       .describe('Whether the call is currently active (from `calls` table).'),
@@ -2226,12 +2251,6 @@ export const getCallRecordResponse = zod
       .array(
         zod
           .object({
-            displayName: zod
-              .string()
-              .nullish()
-              .describe(
-                'Guest-provided display name, retained after archival.'
-              ),
             joinedAt: zod.iso
               .datetime({})
               .describe('When the user joined the call.'),
@@ -2241,13 +2260,13 @@ export const getCallRecordResponse = zod
               .describe(
                 'When the user left (None if still in an active call).'
               ),
-            userId: zod.string().describe('The user id.'),
+            userId: zod.string().describe('The Macro user id.'),
           })
           .describe(
             'A participant as returned in a [`CallRecord`] (historic — includes `left_at`).'
           )
       )
-      .describe('Participants (both active and historic).'),
+      .describe('Macro-account participants (both active and historic).'),
     recordingPreviewUrl: zod
       .string()
       .nullish()
@@ -12271,6 +12290,33 @@ export const getItemsSoupResponse = zod
                       .datetime({})
                       .nullish()
                       .describe('When the call ended (None if still active).'),
+                    guests: zod
+                      .array(
+                        zod
+                          .object({
+                            displayName: zod
+                              .string()
+                              .describe('Guest-provided display name.'),
+                            id: zod
+                              .uuid()
+                              .describe(
+                                "Opaque guest identity; matches the guest's transcript speaker id."
+                              ),
+                            joinedAt: zod.iso
+                              .datetime({})
+                              .describe('When the guest joined the call.'),
+                            leftAt: zod.iso
+                              .datetime({})
+                              .nullish()
+                              .describe(
+                                'When the guest left (None if still in an active call).'
+                              ),
+                          })
+                          .describe(
+                            'A non-account guest of a call record, as displayed in Soup.'
+                          )
+                      )
+                      .describe('Non-account guests in the call.'),
                     isActive: zod
                       .boolean()
                       .describe('Whether the call is currently active.'),
@@ -12278,12 +12324,6 @@ export const getItemsSoupResponse = zod
                       .array(
                         zod
                           .object({
-                            displayName: zod
-                              .string()
-                              .nullish()
-                              .describe(
-                                'Guest display name, when the participant has no Macro profile.'
-                              ),
                             joinedAt: zod.iso
                               .datetime({})
                               .describe('When the user joined the call.'),
@@ -12293,13 +12333,13 @@ export const getItemsSoupResponse = zod
                               .describe(
                                 'When the user left (None if still in an active call).'
                               ),
-                            userId: zod.string().describe('The user id.'),
+                            userId: zod.string().describe('The Macro user id.'),
                           })
                           .describe(
-                            'A participant in a call record, as displayed in Soup.'
+                            'A Macro-account participant in a call record, as displayed in Soup.'
                           )
                       )
-                      .describe('Participants in the call.'),
+                      .describe('Macro-account participants in the call.'),
                     startedAt: zod.iso
                       .datetime({})
                       .describe('When the call started.'),
@@ -16254,6 +16294,33 @@ export const postItemsSoupResponse = zod
                       .datetime({})
                       .nullish()
                       .describe('When the call ended (None if still active).'),
+                    guests: zod
+                      .array(
+                        zod
+                          .object({
+                            displayName: zod
+                              .string()
+                              .describe('Guest-provided display name.'),
+                            id: zod
+                              .uuid()
+                              .describe(
+                                "Opaque guest identity; matches the guest's transcript speaker id."
+                              ),
+                            joinedAt: zod.iso
+                              .datetime({})
+                              .describe('When the guest joined the call.'),
+                            leftAt: zod.iso
+                              .datetime({})
+                              .nullish()
+                              .describe(
+                                'When the guest left (None if still in an active call).'
+                              ),
+                          })
+                          .describe(
+                            'A non-account guest of a call record, as displayed in Soup.'
+                          )
+                      )
+                      .describe('Non-account guests in the call.'),
                     isActive: zod
                       .boolean()
                       .describe('Whether the call is currently active.'),
@@ -16261,12 +16328,6 @@ export const postItemsSoupResponse = zod
                       .array(
                         zod
                           .object({
-                            displayName: zod
-                              .string()
-                              .nullish()
-                              .describe(
-                                'Guest display name, when the participant has no Macro profile.'
-                              ),
                             joinedAt: zod.iso
                               .datetime({})
                               .describe('When the user joined the call.'),
@@ -16276,13 +16337,13 @@ export const postItemsSoupResponse = zod
                               .describe(
                                 'When the user left (None if still in an active call).'
                               ),
-                            userId: zod.string().describe('The user id.'),
+                            userId: zod.string().describe('The Macro user id.'),
                           })
                           .describe(
-                            'A participant in a call record, as displayed in Soup.'
+                            'A Macro-account participant in a call record, as displayed in Soup.'
                           )
                       )
-                      .describe('Participants in the call.'),
+                      .describe('Macro-account participants in the call.'),
                     startedAt: zod.iso
                       .datetime({})
                       .describe('When the call started.'),
@@ -19680,6 +19741,33 @@ export const postItemsSoupAstResponse = zod
                       .datetime({})
                       .nullish()
                       .describe('When the call ended (None if still active).'),
+                    guests: zod
+                      .array(
+                        zod
+                          .object({
+                            displayName: zod
+                              .string()
+                              .describe('Guest-provided display name.'),
+                            id: zod
+                              .uuid()
+                              .describe(
+                                "Opaque guest identity; matches the guest's transcript speaker id."
+                              ),
+                            joinedAt: zod.iso
+                              .datetime({})
+                              .describe('When the guest joined the call.'),
+                            leftAt: zod.iso
+                              .datetime({})
+                              .nullish()
+                              .describe(
+                                'When the guest left (None if still in an active call).'
+                              ),
+                          })
+                          .describe(
+                            'A non-account guest of a call record, as displayed in Soup.'
+                          )
+                      )
+                      .describe('Non-account guests in the call.'),
                     isActive: zod
                       .boolean()
                       .describe('Whether the call is currently active.'),
@@ -19687,12 +19775,6 @@ export const postItemsSoupAstResponse = zod
                       .array(
                         zod
                           .object({
-                            displayName: zod
-                              .string()
-                              .nullish()
-                              .describe(
-                                'Guest display name, when the participant has no Macro profile.'
-                              ),
                             joinedAt: zod.iso
                               .datetime({})
                               .describe('When the user joined the call.'),
@@ -19702,13 +19784,13 @@ export const postItemsSoupAstResponse = zod
                               .describe(
                                 'When the user left (None if still in an active call).'
                               ),
-                            userId: zod.string().describe('The user id.'),
+                            userId: zod.string().describe('The Macro user id.'),
                           })
                           .describe(
-                            'A participant in a call record, as displayed in Soup.'
+                            'A Macro-account participant in a call record, as displayed in Soup.'
                           )
                       )
-                      .describe('Participants in the call.'),
+                      .describe('Macro-account participants in the call.'),
                     startedAt: zod.iso
                       .datetime({})
                       .describe('When the call started.'),
@@ -23438,6 +23520,35 @@ export const postItemsSoupAstGroupedResponse = zod
                             .describe(
                               'When the call ended (None if still active).'
                             ),
+                          guests: zod
+                            .array(
+                              zod
+                                .object({
+                                  displayName: zod
+                                    .string()
+                                    .describe('Guest-provided display name.'),
+                                  id: zod
+                                    .uuid()
+                                    .describe(
+                                      "Opaque guest identity; matches the guest's transcript speaker id."
+                                    ),
+                                  joinedAt: zod.iso
+                                    .datetime({})
+                                    .describe(
+                                      'When the guest joined the call.'
+                                    ),
+                                  leftAt: zod.iso
+                                    .datetime({})
+                                    .nullish()
+                                    .describe(
+                                      'When the guest left (None if still in an active call).'
+                                    ),
+                                })
+                                .describe(
+                                  'A non-account guest of a call record, as displayed in Soup.'
+                                )
+                            )
+                            .describe('Non-account guests in the call.'),
                           isActive: zod
                             .boolean()
                             .describe('Whether the call is currently active.'),
@@ -23445,12 +23556,6 @@ export const postItemsSoupAstGroupedResponse = zod
                             .array(
                               zod
                                 .object({
-                                  displayName: zod
-                                    .string()
-                                    .nullish()
-                                    .describe(
-                                      'Guest display name, when the participant has no Macro profile.'
-                                    ),
                                   joinedAt: zod.iso
                                     .datetime({})
                                     .describe('When the user joined the call.'),
@@ -23460,13 +23565,17 @@ export const postItemsSoupAstGroupedResponse = zod
                                     .describe(
                                       'When the user left (None if still in an active call).'
                                     ),
-                                  userId: zod.string().describe('The user id.'),
+                                  userId: zod
+                                    .string()
+                                    .describe('The Macro user id.'),
                                 })
                                 .describe(
-                                  'A participant in a call record, as displayed in Soup.'
+                                  'A Macro-account participant in a call record, as displayed in Soup.'
                                 )
                             )
-                            .describe('Participants in the call.'),
+                            .describe(
+                              'Macro-account participants in the call.'
+                            ),
                           startedAt: zod.iso
                             .datetime({})
                             .describe('When the call started.'),
@@ -26862,6 +26971,35 @@ export const postItemsSoupAstGroupedResponse = zod
                             .describe(
                               'When the call ended (None if still active).'
                             ),
+                          guests: zod
+                            .array(
+                              zod
+                                .object({
+                                  displayName: zod
+                                    .string()
+                                    .describe('Guest-provided display name.'),
+                                  id: zod
+                                    .uuid()
+                                    .describe(
+                                      "Opaque guest identity; matches the guest's transcript speaker id."
+                                    ),
+                                  joinedAt: zod.iso
+                                    .datetime({})
+                                    .describe(
+                                      'When the guest joined the call.'
+                                    ),
+                                  leftAt: zod.iso
+                                    .datetime({})
+                                    .nullish()
+                                    .describe(
+                                      'When the guest left (None if still in an active call).'
+                                    ),
+                                })
+                                .describe(
+                                  'A non-account guest of a call record, as displayed in Soup.'
+                                )
+                            )
+                            .describe('Non-account guests in the call.'),
                           isActive: zod
                             .boolean()
                             .describe('Whether the call is currently active.'),
@@ -26869,12 +27007,6 @@ export const postItemsSoupAstGroupedResponse = zod
                             .array(
                               zod
                                 .object({
-                                  displayName: zod
-                                    .string()
-                                    .nullish()
-                                    .describe(
-                                      'Guest display name, when the participant has no Macro profile.'
-                                    ),
                                   joinedAt: zod.iso
                                     .datetime({})
                                     .describe('When the user joined the call.'),
@@ -26884,13 +27016,17 @@ export const postItemsSoupAstGroupedResponse = zod
                                     .describe(
                                       'When the user left (None if still in an active call).'
                                     ),
-                                  userId: zod.string().describe('The user id.'),
+                                  userId: zod
+                                    .string()
+                                    .describe('The Macro user id.'),
                                 })
                                 .describe(
-                                  'A participant in a call record, as displayed in Soup.'
+                                  'A Macro-account participant in a call record, as displayed in Soup.'
                                 )
                             )
-                            .describe('Participants in the call.'),
+                            .describe(
+                              'Macro-account participants in the call.'
+                            ),
                           startedAt: zod.iso
                             .datetime({})
                             .describe('When the call started.'),
