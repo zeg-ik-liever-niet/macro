@@ -384,6 +384,7 @@ dependencies = [
  "github",
  "harness_id",
  "harnesses",
+ "initiative",
  "kafka_util",
  "lexical_client",
  "lexical_mention_extractor",
@@ -601,6 +602,7 @@ dependencies = [
  "channels",
  "database_env_vars",
  "entity_access",
+ "initiative",
  "kafka_util",
  "lexical_client",
  "macro_config",
@@ -741,6 +743,7 @@ dependencies = [
  "frecency",
  "futures",
  "import",
+ "initiative",
  "item_filters",
  "lazy_static",
  "lexical_client",
@@ -1695,6 +1698,7 @@ dependencies = [
  "github",
  "gtm_invite",
  "http-body-util",
+ "initiative",
  "jsonwebtoken 10.3.0",
  "last_online_tracker",
  "loops_client",
@@ -3120,7 +3124,7 @@ dependencies = [
 
 [[package]]
 name = "cache-wasm"
-version = "0.6.19"
+version = "0.6.20"
 dependencies = [
  "async-lock",
  "cache-core",
@@ -11006,6 +11010,7 @@ dependencies = [
  "chrono",
  "connection_gateway_client",
  "entity_access",
+ "initiative",
  "macro_authorization",
  "macro_db_migrator",
  "macro_event_broker",
@@ -11018,7 +11023,9 @@ dependencies = [
  "model_notifications",
  "model_owner",
  "models_pagination",
+ "models_properties",
  "notification",
+ "properties",
  "rootcause",
  "schemars 1.2.1",
  "serde",

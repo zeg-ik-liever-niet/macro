@@ -14,6 +14,7 @@ mod test;
 #[derive(Clone)]
 pub struct PgMessageRepository {
     pool: PgPool,
+    initiatives: Option<std::sync::Arc<dyn initiative::domain::lookup::InitiativeReader>>,
 }
 
 #[derive(Deserialize)]
@@ -52,7 +53,7 @@ fn database_error(error: sqlx::Error) -> MessageError {
 fn channel_column(parent: &MessageParent) -> Option<Uuid> {
     match parent {
         MessageParent::Channel(id) => Some(*id),
-        MessageParent::Document(_) => None,
+        MessageParent::Document(_) | MessageParent::Initiative(_) => None,
     }
 }
 
@@ -67,7 +68,20 @@ fn stored_attachment_type(entity_type: &str) -> &str {
 impl PgMessageRepository {
     /// Create a repository using the shared MacroDB pool.
     pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+        Self {
+            pool,
+            initiatives: None,
+        }
+    }
+
+    /// Supply the owning initiative identity service for initiative discussions.
+    /// Unconfigured compositions reject initiative operations.
+    pub fn with_initiatives(
+        mut self,
+        initiatives: impl initiative::domain::lookup::InitiativeReader,
+    ) -> Self {
+        self.initiatives = Some(std::sync::Arc::new(initiatives));
+        self
     }
 
     async fn hydrate(&self, rows: Vec<Json<StoredMessage>>) -> Result<Vec<Message>, MessageError> {
@@ -475,6 +489,12 @@ impl MessageRepository for PgMessageRepository {
 
     async fn parent_exists(&self, parent: &MessageParent) -> Result<bool, MessageError> {
         let exists = match parent {
+            MessageParent::Initiative(id) => {
+                let Some(initiatives) = &self.initiatives else { return Ok(false); };
+                return initiatives.read_basic(initiative::domain::models::InitiativeId::from_uuid(*id))
+                    .await.map(|value| value.is_some())
+                    .map_err(|error| MessageError::Repository(rootcause::report!(error).into()));
+            }
             MessageParent::Document(_) => sqlx::query_scalar!(r#"SELECT EXISTS(SELECT 1 FROM "Document" WHERE id = $1 AND "deletedAt" IS NULL) AS "exists!""#, parent.entity_id())
                 .fetch_one(&self.pool).await,
             MessageParent::Channel(id) => sqlx::query_scalar!(r#"SELECT EXISTS(SELECT 1 FROM comms_channels WHERE id = $1) AS "exists!""#, id)

@@ -36,6 +36,7 @@ function getNotificationIcon(
     .with('document_mention', () => FilesIcon)
     .with('mentioned_in_document_comment', () => AtIcon)
     .with('replied_to_document_comment_thread', () => ArrowBendUpLeftIcon)
+    .with('initiative_discussion', () => ChatIcon)
     .with('commented_on_document', () => ChatIcon)
     .with('channel_message_reply', () => ArrowBendUpLeftIcon)
     .with('channel_message_send', () => ChatIcon)
@@ -76,6 +77,12 @@ export function NotificationIcon(props: NotificationIconProps) {
   };
 
   const icon = () => {
+    const metadata = (props.notification ?? props.stack?.notifications[0])
+      ?.notification_metadata;
+    if (metadata?.tag === 'initiative_discussion') {
+      if (metadata.content.reason === 'mention') return AtIcon;
+      if (metadata.content.reason === 'reply') return ArrowBendUpLeftIcon;
+    }
     const type = notificationType();
     if (!type) return ChatIcon;
     return getNotificationIcon(type);

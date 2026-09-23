@@ -63,7 +63,13 @@ export function NotificationDescription(props: NotificationDescriptionProps) {
   // change rather than on every call from the description() formatters.
   const senderLabels = createMemo((): string[] => {
     if (props.notification) {
-      const tag = props.notification.notification_metadata.tag;
+      const metadata = props.notification.notification_metadata;
+      if (
+        metadata.tag === 'initiative_discussion' &&
+        metadata.content.senderDisplayName
+      )
+        return [metadata.content.senderDisplayName];
+      const tag = metadata.tag;
       if (isGithubNotificationType(tag)) {
         const login = getGithubSenderLogin(props.notification);
         return login ? [login] : [];
@@ -74,6 +80,23 @@ export function NotificationDescription(props: NotificationDescriptionProps) {
       return [];
     }
     if (props.stack) {
+      if (props.stack.type === 'initiative_discussion') {
+        return [
+          ...new Set(
+            props.stack.notifications.flatMap((notification) => {
+              const meta = notification.notification_metadata;
+              if (
+                meta.tag === 'initiative_discussion' &&
+                meta.content.senderDisplayName
+              )
+                return [meta.content.senderDisplayName];
+              return notification.sender_id
+                ? [macroFirstName(notification.sender_id)]
+                : [];
+            })
+          ),
+        ];
+      }
       if (isGithubNotificationType(props.stack.type)) {
         return getUniqueGithubLogins(props.stack.notifications);
       }
@@ -96,10 +119,20 @@ export function NotificationDescription(props: NotificationDescriptionProps) {
 
     // Single notification: "Peter mentioned you"
     if (isSingleNotification()) {
+      const metadata = (props.notification ?? props.stack?.notifications[0])
+        ?.notification_metadata;
+      const action =
+        metadata?.tag === 'initiative_discussion'
+          ? metadata.content.reason === 'mention'
+            ? 'mentioned you'
+            : metadata.content.reason === 'reply'
+              ? 'replied'
+              : 'commented'
+          : getActionVerb(type);
       if (sender && type !== 'ai_response') {
-        return `${sender} ${getActionVerb(type)}`;
+        return `${sender} ${action}`;
       }
-      return getActionVerb(type);
+      return action;
     }
 
     // Stack with multiple senders
