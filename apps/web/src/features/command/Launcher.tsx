@@ -20,6 +20,7 @@ import { CHAT_INPUT_TEXT_AREA_ID } from '@core/component/AI/component/input/Chat
 import { getIconConfig } from '@core/component/EntityIcon';
 import {
   enableChatV3Agents,
+  enableProjects,
   enableReminders,
   enableSnippets,
   isFeatureEnabled,
@@ -330,6 +331,13 @@ export function runCreateAction(
         asPopover: true,
       });
       return;
+    case 'initiative':
+      if (!isFeatureEnabled(enableProjects)) return;
+      createComponent({
+        componentId: 'project-compose',
+        asPopover: true,
+      });
+      return;
     case 'snippet':
       createBlock({
         blockName: 'snippet',
@@ -581,6 +589,20 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
+    label: 'Project',
+    icon: getIconConfig('initiative').icon,
+    description: 'Create project',
+    keywords: ['new', 'make', 'add', 'project'],
+    blockName: 'initiative',
+    enabled: () => isFeatureEnabled(enableProjects),
+    hotkeyToken: TOKENS.create.initiative,
+    hotkey: 'p',
+    keyDownHandler: () => {
+      runCreateAction('initiative');
+      return true;
+    },
+  },
+  {
     label: 'Reminder',
     icon: getIconConfig('reminder').icon,
     description: 'Create reminder',
@@ -723,12 +745,14 @@ export function useCreateMenuBlocks(
   // flag that resolves after mount would leave the menu as it was until reload.
   const remindersFlag = useFeatureFlag(enableReminders);
   const agentsFlag = useFeatureFlag(enableChatV3Agents);
+  const projectsFlag = useFeatureFlag(enableProjects);
   return createMemo(() => {
     remindersFlag();
     agentsFlag();
     return source().filter((block) => {
       if (block.blockName === 'spreadsheet') return spreadsheets();
       if (block.blockName === 'snippet') return snippetsFlag().enabled;
+      if (block.blockName === 'initiative') return projectsFlag().enabled;
       return block.enabled?.() ?? true;
     });
   });

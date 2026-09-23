@@ -1,5 +1,19 @@
 # AI Chat (Agents)
 
+## Working with projects
+
+Project tools can list, read, create, update, delete, and share projects; set or
+clear task associations; read project activity; and read, post, edit, delete,
+react to, resolve, and reopen discussions. Backend tool names use `Initiative`.
+These operate on the native Projects views in Tasks.
+
+Each completed tool row has an expandable result toggle, including empty results
+and per-task failures. Project chips open the native project; discussion chips
+open Activity at the relevant message. Shift-click opens another split.
+Expanded comments show their text and reactions, and **Result data** reveals the
+complete returned response. Successful mutations refresh the project views.
+Deleting a project shows its result without a link to the deleted project.
+
 ## Uploading files with AI
 
 `UploadFile` accepts a filename and standard padded base64 contents, up to 25 MiB

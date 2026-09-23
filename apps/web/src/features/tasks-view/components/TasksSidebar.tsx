@@ -15,6 +15,7 @@ import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import CheckSquareIcon from '@phosphor/check-square.svg';
 import ListChecksIcon from '@phosphor/list-checks.svg';
 import NoteIcon from '@phosphor/note-pencil.svg';
+import StackIcon from '@phosphor/stack.svg';
 import { SidebarTagsSection } from '@property/tags/SidebarTagsSection';
 import { useFavoritesData } from '@queries/favorites/favorites';
 import type { Favorite } from '@service-storage/generated/schemas/favorite';
@@ -27,14 +28,19 @@ const TASK_NAV_ITEMS = [
   { id: 'my-tasks', label: 'My Tasks', icon: CheckSquareIcon },
   { id: 'team-tasks', label: 'All Tasks', icon: ListChecksIcon },
   { id: 'created-by-me', label: 'Created by me', icon: NoteIcon },
+  { id: 'projects', label: 'Projects', icon: StackIcon },
 ] satisfies { id: TaskTab; label: string; icon: typeof NoteIcon }[];
 
 export function TasksNavigation(props: { onNavigate?: () => void }) {
-  const { state, setTab } = useTasksView();
+  const { state, setTab, projectsEnabled } = useTasksView();
 
   return (
     <ViewSidebar.Nav aria-label="Task views">
-      <For each={TASK_NAV_ITEMS}>
+      <For
+        each={TASK_NAV_ITEMS.filter(
+          (item) => item.id !== 'projects' || projectsEnabled()
+        )}
+      >
         {(item) => (
           <ViewSidebar.Item
             active={state.tab === item.id}
@@ -133,6 +139,7 @@ export function TasksSidebar() {
   const panel = useSplitPanelOrThrow();
   const {
     state,
+    projectsEnabled,
     setTab,
     setFacets,
     isSidebarSectionOpen,
@@ -142,7 +149,10 @@ export function TasksSidebar() {
   useViewTabHotkeys({
     scopeId: panel.splitHotkeyScope,
     enabled: panel.isPanelActive,
-    ids: () => TASK_NAV_ITEMS.map((tab) => tab.id),
+    ids: () =>
+      TASK_NAV_ITEMS.filter(
+        (tab) => tab.id !== 'projects' || projectsEnabled()
+      ).map((tab) => tab.id),
     activeId: () => state.tab,
     setActiveId: setTab,
   });
@@ -151,9 +161,12 @@ export function TasksSidebar() {
     <ViewSidebar.Root aria-label="Tasks navigation">
       <SidebarCreateHeader
         title="Tasks"
-        label="New task"
+        label={state.tab === 'projects' ? 'New project' : 'New task'}
         onCreate={() =>
-          layout.popoverSplit({ type: 'component', id: 'task-compose' })
+          layout.popoverSplit({
+            type: 'component',
+            id: state.tab === 'projects' ? 'project-compose' : 'task-compose',
+          })
         }
       />
 

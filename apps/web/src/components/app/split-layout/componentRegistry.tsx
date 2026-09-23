@@ -22,6 +22,11 @@ import type { Query } from '@app/features/next-soup/filters/filter-store/types';
 import { getViewPreset } from '@app/features/next-soup/sidebar/soup-filter-presets';
 import { SoupView } from '@app/features/next-soup/soup-view/soup-view';
 import { useRecentViewFlag } from '@app/features/next-soup/use-recent-view-flag';
+import { parseProjectRoute } from '@app/features/projects/core/route';
+import {
+  CreateProjectView,
+  ProjectView,
+} from '@app/features/projects/project-view';
 import { ReminderEditorSplit } from '@app/features/reminders/ReminderEditorSplit';
 import { McpConnections } from '@app/features/settings/McpConnections';
 import { SettingsPanelComponentWrapper } from '@app/features/settings/Settings';
@@ -44,6 +49,7 @@ import {
   enableChatV3Agents,
   enableCrm,
   enableNewAppViews,
+  enableProjects,
   enableReminders,
   isFeatureEnabled,
   LOCAL_ONLY,
@@ -60,6 +66,7 @@ import {
   lazy,
   onCleanup,
   onMount,
+  type ParentProps,
   Show,
 } from 'solid-js';
 import type { SplitContent } from './layoutManager';
@@ -201,6 +208,16 @@ export function resolveComponent(
 ): ResolvedComponent {
   const registration = REGISTRY.get(name);
   if (!registration) {
+    const projectRoute = parseProjectRoute(name);
+    if (projectRoute) {
+      const base = REGISTRY.get('initiative-view');
+      if (base)
+        return {
+          element: () =>
+            base.factory({ ...(params ?? {}), projectRoute: name }),
+          initialMeta: base.initialMeta,
+        };
+    }
     if (parseAgentsRoute(name)) {
       const base = REGISTRY.get('agents');
       if (base) {
@@ -233,6 +250,60 @@ registerComponent('unified-list', () => (
 ));
 
 /** BEGIN - APP ROUTES */
+function DisabledProjectsRoute() {
+  const panel = useSplitPanelOrThrow();
+  onMount(() => {
+    if (panel.handle.isPopover()) panel.handle.close();
+    else panel.handle.replace({ next: { type: 'component', id: 'tasks' } });
+  });
+  return null;
+}
+
+function ProjectsRouteGate(props: ParentProps) {
+  const flag = useFeatureFlag(enableProjects);
+  return (
+    <Show
+      when={flag().enabled}
+      fallback={
+        <Show when={!flag().loading} fallback={<LoadingBlock />}>
+          <DisabledProjectsRoute />
+        </Show>
+      }
+    >
+      {props.children}
+    </Show>
+  );
+}
+
+const GatedCreateProjectView: typeof CreateProjectView = (props) => (
+  <ProjectsRouteGate>
+    <CreateProjectView {...props} />
+  </ProjectsRouteGate>
+);
+
+registerComponent('new-project', withAuth(GatedCreateProjectView), {
+  splitPanelLayout: 'composable',
+});
+registerComponent('project-compose', withAuth(GatedCreateProjectView), {
+  splitPanelLayout: 'composable',
+});
+registerComponent(
+  'initiative-view',
+  withAuth((params) => {
+    const route =
+      typeof params.projectRoute === 'string'
+        ? parseProjectRoute(params.projectRoute)
+        : undefined;
+    return route ? (
+      <ProjectsRouteGate>
+        <ProjectView route={route} />
+      </ProjectsRouteGate>
+    ) : (
+      <RedirectSplit to={{ type: 'component', id: 'tasks' }} />
+    );
+  }),
+  { splitPanelLayout: 'composable' }
+);
 registerComponent(
   'home',
   withAuth(() => {
@@ -557,6 +628,15 @@ function RegisteredTasksView() {
 }
 
 registerComponent('tasks', withAuth(RegisteredTasksView));
+registerComponent(
+  'tasks-projects',
+  withAuth(() => (
+    <ProjectsRouteGate>
+      <TasksView initialState={{ tab: 'projects' }} />
+    </ProjectsRouteGate>
+  )),
+  { splitPanelLayout: 'composable' }
+);
 
 function LegacyChannelsView() {
   const preset = getViewPreset('channels');

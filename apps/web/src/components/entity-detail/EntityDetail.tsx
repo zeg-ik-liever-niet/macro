@@ -26,13 +26,17 @@ import {
   VideoDetail,
   type VideoDetailContext,
 } from '@app/features/drive-view/views/VideoDetail';
+import { ProjectDetail } from '@app/features/projects/project-detail';
+import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import type { MarkdownDocumentKind } from '@block-md/types';
 import { useGlobalBlockOrchestrator } from '@components/app/GlobalAppState';
 import { PreviewPanel } from '@components/app/PreviewPanel';
+import { SidePanel } from '@components/app/side-panel';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import type { BlockAlias, BlockName } from '@core/block';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
-import { type JSX, Match, Switch } from 'solid-js';
+import { enableProjects } from '@core/constant/featureFlags';
+import { type JSX, Match, Show, Switch } from 'solid-js';
 import type { EntityDetailTarget } from './EntityDetailNavigationStack';
 
 export type EntityDetailContext =
@@ -58,7 +62,9 @@ function PreviewPanelEntityDetail(props: EntityDetailProps) {
 
   return (
     <PreviewPanel
-      selectedEntity={props.target}
+      selectedEntity={
+        props.target.type === 'initiative' ? undefined : props.target
+      }
       orchestrator={orchestrator}
       splitPanelContext={panel}
       headerLeading={props.previewHeaderLeading}
@@ -101,6 +107,7 @@ export function entityDetailBlockType(
 }
 
 export function EntityDetail(props: EntityDetailProps) {
+  const projectsFlag = useFeatureFlag(enableProjects);
   const documentTarget = () =>
     props.target.type === 'document' ? props.target : undefined;
   const blockType = () => entityDetailBlockType(props.target);
@@ -109,6 +116,23 @@ export function EntityDetail(props: EntityDetailProps) {
 
   return (
     <Switch>
+      <Match
+        when={props.target.type === 'initiative' ? props.target : undefined}
+      >
+        {(project) => (
+          <Show when={projectsFlag().enabled}>
+            <SidePanel.Root persistKey="tasks">
+              <ProjectDetail
+                route={{
+                  id: project().id,
+                  section: project().section ?? 'overview',
+                  discussionId: project().discussionId,
+                }}
+              />
+            </SidePanel.Root>
+          </Show>
+        )}
+      </Match>
       <Match
         when={
           blockType() === 'md' ||

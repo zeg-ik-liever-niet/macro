@@ -18,6 +18,7 @@ import {
 } from '@core/constant/allBlocks';
 import {
   enableCalendarUi,
+  enableProjects,
   enableReminders,
   isFeatureEnabled,
   USE_MACRO_PR_SUMMARY_BLOCK,
@@ -28,6 +29,7 @@ import { getNotificationById } from '@queries/notification/user-notifications';
 import { getReminderById } from '@queries/reminders/reminders';
 import { errAsync, ResultAsync } from 'neverthrow';
 import { match, P } from 'ts-pattern';
+import { projectRouteId } from '../projects/core/route';
 import { GITHUB_EVENT_TYPES } from './github-event-types';
 import { isChannelNotification } from './notification-helpers';
 import { DefaultNotificationBlockNameResolver } from './notification-resolvers';
@@ -301,6 +303,27 @@ function getSupportedHandler(
           openExternalUrl(url);
         };
       })
+      .with('initiative_discussion', () => {
+        if (!isFeatureEnabled(enableProjects)) return null;
+        const meta = notification.notification_metadata;
+        if (
+          meta.tag !== 'initiative_discussion' ||
+          notification.entity_type !== 'initiative'
+        )
+          return null;
+        return async (lm: SplitManager, newSplit = false) => {
+          openSplitIfNotOpen(
+            lm,
+            'component',
+            projectRouteId({
+              id: notification.entity_id,
+              section: 'overview',
+              discussionId: meta.content.messageId,
+            }),
+            { newSplit, sourceHandle }
+          );
+        };
+      })
       .with('mentioned_in_document_comment', () => {
         const meta = notification.notification_metadata;
         if (meta.tag !== 'mentioned_in_document_comment') return null;
@@ -415,7 +438,7 @@ function getSupportedHandler(
           });
         };
       })
-      .with('inbox_reauth_required', 'initiative_discussion', () => null)
+      .with('inbox_reauth_required', () => null)
       .exhaustive()
   );
 }

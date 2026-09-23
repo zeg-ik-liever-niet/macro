@@ -112,6 +112,8 @@ export function useMessageLink(
         : entityMessagesClient.get(parent(), target()!),
   }));
   return {
+    error: () => legacy.error,
+    refetch: legacy.refetch,
     messageId: () => {
       const id = target();
       if (!id) return null;

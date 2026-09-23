@@ -8,9 +8,21 @@ import {
 } from '@app/components/navigation-stack/NavigationStack';
 import { createPreviewSelectionGuard } from '@components/app/createPreviewSelectionGuard';
 import type { PreviewPanelSelection } from '@components/app/PreviewPanel';
+import { useSplitPanel } from '@components/app/split-layout/layoutUtils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { onMount } from 'solid-js';
 
-export type EntityDetailTarget = PreviewPanelSelection & {
+export type InitiativeDetailTarget = {
+  type: 'initiative';
+  id: string;
+  section?: 'overview' | 'tasks';
+  discussionId?: string;
+};
+
+export type EntityDetailTarget = (
+  | PreviewPanelSelection
+  | InitiativeDetailTarget
+) & {
   fallbackName?: string;
 };
 
@@ -31,7 +43,7 @@ export type EntityDetailChannelMessageTargetInput = {
 };
 
 export function createEntityDetailTarget<
-  TSelection extends PreviewPanelSelection,
+  TSelection extends PreviewPanelSelection | InitiativeDetailTarget,
 >(
   selection: TSelection,
   fallbackName?: string
@@ -44,6 +56,11 @@ export function createEntityDetailTarget<
 
 export const entityDetailTarget = {
   fromSelection: createEntityDetailTarget,
+  initiative(
+    input: Omit<InitiativeDetailTarget, 'type'> & { fallbackName?: string }
+  ): EntityDetailTarget {
+    return { ...input, type: 'initiative' };
+  },
   document(input: EntityDetailDocumentTargetInput): EntityDetailTarget {
     const { fallbackName, ...selection } = input;
     return createEntityDetailTarget(
@@ -103,12 +120,25 @@ function opensInline(options?: EntityDetailNavigationOptions) {
 
 function Root(props: EntityDetailNavigationStackRootProps) {
   const selectPreview = createPreviewSelectionGuard();
+  const panel = useSplitPanel();
+  let initialized = false;
+  onMount(() => {
+    initialized = true;
+  });
   return (
     <NavigationStack.Root<EntityDetailTarget, EntityDetailNavigationOptions>
       {...props}
-      beforeChange={(target) =>
-        props.beforeChange?.(target) !== false && selectPreview(target)
-      }
+      beforeChange={(target) => {
+        if (
+          props.beforeChange?.(target) === false ||
+          !selectPreview(target?.type === 'initiative' ? undefined : target)
+        )
+          return false;
+        // Inline navigation disposes the current detail without navigating the
+        // split itself. Capture its list state before the next entry mounts.
+        if (initialized) panel?.handle.captureEntryState();
+        return true;
+      }}
       shouldNavigate={(target, options) =>
         props.shouldNavigate
           ? props.shouldNavigate(target, options)

@@ -3,6 +3,7 @@ import { buildPostMessageSendPayload } from '@channel/Input/message-payload';
 import { useMessageBotMentionUsers } from '@channel/use-channel-bot-mention-users';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { useUserId } from '@core/context/user';
+import { thrownResultErrorHasCode } from '@core/util/result';
 import { useMessageLink } from '@queries/messages/document-messages';
 import { useSendMessageMutation } from '@queries/messages/mutations';
 import { useMessageTimelineQuery } from '@queries/messages/timeline';
@@ -50,6 +51,7 @@ export function DocumentConversationComposer(props: {
 export function DocumentConversation(props: {
   parent: MessageParent;
   canWrite: boolean;
+  allowResolve?: boolean;
   targetId?: string | null;
   buildLink?: (message: MessageData) => string;
   label?: string;
@@ -69,10 +71,16 @@ export function DocumentConversation(props: {
     target.rootId,
     target.resolved
   );
+  const unavailable = () =>
+    ['UNAUTHORIZED', 'FORBIDDEN', 'NOT_FOUND'].some(
+      (code) =>
+        thrownResultErrorHasCode(query.error, code) ||
+        (code !== 'NOT_FOUND' && thrownResultErrorHasCode(target.error(), code))
+    );
   // Until the link resolves, the shared latest page would flash before the window jumps.
   const messages = () =>
-    target.resolved() && query.isSuccess
-      ? query.data.pages
+    target.resolved() && !query.isPending && !unavailable()
+      ? (query.data?.pages
           .flatMap((page) => page.items)
           // Only known unanchored roots belong in Discussion. Live roots have
           // undefined anchors until their thread metadata is fetched.
@@ -80,7 +88,7 @@ export function DocumentConversation(props: {
             (message) =>
               !message.state.deleted_at && message.state.anchor === null
           )
-          .toReversed()
+          .toReversed() ?? [])
       : [];
   const messagesById = createMemo(
     () => new Map(messages().map((message) => [message.id, message]))
@@ -100,14 +108,20 @@ export function DocumentConversation(props: {
             <Show when={!target.resolved() || query.isPending}>
               <p class="text-xs text-ink-muted">Loading comments...</p>
             </Show>
-            <Show when={query.isError}>
-              <button onClick={() => void query.refetch()}>
+            <Show when={query.isError || unavailable()}>
+              <button
+                onClick={() => {
+                  void query.refetch();
+                  if (props.targetId) void target.refetch();
+                }}
+              >
                 Could not load comments. Retry
               </button>
             </Show>
-            <Show when={query.hasNextPage}>
+            <Show when={!unavailable() && query.hasNextPage}>
               <button
                 class="text-xs"
+                disabled={query.isFetching}
                 onClick={() => void query.fetchNextPage()}
               >
                 Load earlier comments
@@ -118,20 +132,24 @@ export function DocumentConversation(props: {
                 <MessageThread
                   data={messagesById().get(id)!}
                   canWrite={props.canWrite}
+                  allowResolve={props.allowResolve}
                   targetId={target.rootId() === id ? target.messageId() : null}
                   buildLink={props.buildLink}
                 />
               )}
             </For>
-            <Show when={query.hasPreviousPage}>
+            <Show when={!unavailable() && query.hasPreviousPage}>
               <button
                 class="text-xs"
+                disabled={query.isFetching}
                 onClick={() => void query.fetchPreviousPage()}
               >
                 Load newer comments
               </button>
             </Show>
-            <Show when={props.canWrite && !props.hideComposer}>
+            <Show
+              when={props.canWrite && !props.hideComposer && !unavailable()}
+            >
               <div class="mt-4">
                 <DocumentConversationComposer parent={props.parent} />
               </div>

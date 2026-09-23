@@ -13,6 +13,10 @@
 | `/app/component/channels` | Channels list |
 | `/app/component/documents` | Files (documents list) |
 | `/app/component/tasks` | Tasks table |
+| `/app/component/tasks-projects` | Projects collection inside Tasks |
+| `/app/component/project-compose` | Native project composer, sharing the task composer layout and property controls |
+| `/app/component/new-project` | Alias for the project composer; existing links remain valid |
+| `/app/component/initiative-view~<uuid>~overview` | Project detail in the Tasks workspace, with breadcrumbs and a Properties side panel; Overview includes description, activity, and discussions; replace `overview` with `tasks` for the task list |
 | `/app/component/agents` | AI chats / agents list |
 | `/app/agents/<uuid>` | Chat agent session with the Agents sidebar |
 | `/app/coders/<uuid>` | Code session with the Agents sidebar |
@@ -33,6 +37,26 @@
 Splits: the app is a tiling window manager. A second pane appends its own segment to the URL
 (`/app/<left>/<right>`). Desktop panes expose Close when available and omit
 split-history back/forward buttons. Mobile content panes retain their back button.
+
+Projects require the PostHog `enable-projects` flag (off by default). For local
+testing, use `VITE_ENABLE_PROJECTS=true`. When disabled, project navigation,
+creation, assignment, chips, and Cmd+K results are hidden; direct project links
+return to Tasks after flags resolve. Existing Files folders stay available.
+
+Projects open as native detail views within Tasks, preserving its sidebar and
+shared breadcrumb navigation. The Projects breadcrumb returns to the same list,
+filters, groups, and scroll position. Opening a task from a project extends the
+trail so the project remains a return destination. The standard side-panel
+toggle shows project properties. Their URLs preserve the selected section on reload;
+discussion links append `~<message-uuid>` to the project's `overview` route.
+Existing `activity` routes open Overview, preserving a target message when present.
+Cmd+K includes a Projects category, authorized project search results, and
+`New project`. Selecting a project opens its overview; Shift-selection opens a
+new split. The global Create menu also offers `Project` (C, then P), including
+the full mobile Create sheet. Project opens the same popover host as task creation: a dialog
+on desktop and a bottom drawer on touch. It keeps focus in the project-name
+input, and `Continue editing in split` transfers the current draft. Existing
+folders remain available in Files search.
 
 The app views are referred to as **workspaces**. Expanded workspace sidebars start
 at the shared 256px width; manual resizing and narrow layouts can change the
@@ -287,11 +311,12 @@ rounded selection highlights. Calendar visibility and Show weekends are checkbox
 rows; period, week start, time format, and month choices show trailing checkmarks.
 
 All popover splits open as bottom drawers on touch devices and dialogs
-on desktop, including task, calendar event, skill, and agent session composers.
+on desktop, including task, project, calendar event, skill, and agent session composers.
 
 `Create` button (top-left) opens a menu of: Email E, Automation U, Agent A, Skill K,
-Document D, Task T, Reminder R, Snippet S, Message M, Channel G, Canvas N, Folder F, Code O.
-Document navigates straight into a new doc; Task and Channel open dialogs.
+Document D, Task T, Project P, Reminder R, Snippet S, Message M, Channel G, Canvas N, Folder F, Code O.
+Document navigates straight into a new doc; Task, Project, and Channel open dialogs.
+Project opens the native project composer; Folder remains the Files folder action.
 
 Mobile glass presses animate the enclosing surface over 300ms. Round buttons
 retain roughly 20% growth; wide pills and grouped controls extend their glass
@@ -308,7 +333,7 @@ the static highlight.
 ## Command menu (Ctrl+K)
 
 Opens a dialog with a focused `Search...` textbox and bubble-style category radios
-(All / Command / Agents / Files / Tasks / Channels / People). Type a name, press Enter to open
+(All / Command / Agents / Files / Tasks / Projects / Channels / People). Type a name, press Enter to open
 the top hit. Also exposes commands: `Create`, `Change theme`, `MCP setup`. Keys: Tab cycles
 category, Esc closes. The category strip and footer have transparent backgrounds.
 
