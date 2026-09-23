@@ -42,6 +42,7 @@ import {
   importNotionPageHandler,
   listImportEntitiesHandler,
 } from './ImportTools';
+import { initiativeToolHandlers } from './Initiatives';
 import { listEntitiesHandler } from './ListEntities';
 import { listInboxesHandler } from './ListInboxes';
 import { listLabelsHandler } from './ListLabels';
@@ -105,6 +106,7 @@ import { webFetchHandler } from './WebFetch';
 import { webSearchHandler } from './WebSearch';
 
 const toolHandlers: ToolHandlerMap<RenderContext> = {
+  ...initiativeToolHandlers,
   ReadSpreadsheet: readSpreadsheetHandler,
   CalculateSpreadsheet: calculateSpreadsheetHandler,
   EditSpreadsheet: editSpreadsheetHandler,
