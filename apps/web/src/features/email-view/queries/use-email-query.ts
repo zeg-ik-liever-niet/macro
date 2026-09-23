@@ -59,7 +59,15 @@ function emailMatchesTab(
   return match(tab)
     .with('drafts', () => entity.isDraft)
     .with('shared', () => userId !== undefined && entity.ownerId !== userId)
-    .with('important', 'noise', 'sent', 'calendar', 'all', () => true)
+    .with(
+      'important',
+      'noise',
+      'sent',
+      'scheduled',
+      'calendar',
+      'all',
+      () => true
+    )
     .exhaustive();
 }
 
@@ -94,8 +102,9 @@ export function useEmailDataSource(
   // A restored tag selection waits for the tag sets rather than listing the
   // whole mailbox and then narrowing.
   const facetsReady = () => tagFacetReady(state.facets, options.tagSetsReady());
+  const sourceEnabled = () => facetsReady() && state.tab !== 'scheduled';
   const query = useSoupAstItemsQuery(queryArgs, () => ({
-    enabled: facetsReady(),
+    enabled: sourceEnabled(),
   }));
   const isListPending = () =>
     !facetsReady() || query.isLoading || query.isPlaceholderData;
@@ -118,7 +127,7 @@ export function useEmailDataSource(
     text: () => state.search,
     // Held back with the list query so a tag selection is not stripped from
     // the request before the sets that resolve it have loaded.
-    enabled: facetsReady,
+    enabled: sourceEnabled,
     disableLocalSearch: () => true,
     buildRequest: (request) => buildEmailSearchRequest(queryContext(), request),
   });

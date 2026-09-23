@@ -16,6 +16,7 @@ import type {
   CreateDraftResponse,
   GetAttachmentDocumentIDResponse,
   GetAttachmentResponse,
+  GetScheduledResponse,
   GetThreadResponse,
   ListBackfillJobsResponse,
   ListCalendarsResponse,
@@ -325,6 +326,23 @@ export const emailClient = {
         }
       )
     ).map((result) => result);
+  },
+
+  async getScheduledMessages(
+    args: { offset: number; limit: number },
+    linkId?: string
+  ) {
+    const params = new URLSearchParams({
+      offset: String(args.offset),
+      limit: String(args.limit),
+    });
+    return emailFetch<GetScheduledResponse>(
+      `/email/drafts/scheduled?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: emailLinkHeaders(linkId),
+      }
+    );
   },
 
   async getLinks() {
