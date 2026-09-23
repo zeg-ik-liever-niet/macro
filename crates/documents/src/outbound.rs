@@ -21,3 +21,6 @@ pub mod s3_upload_url;
 pub mod s3_utf8_object_reader;
 #[cfg(feature = "outbound")]
 pub mod sync_service_probe;
+
+#[cfg(feature = "purge")]
+pub mod document_purge;
