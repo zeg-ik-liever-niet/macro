@@ -704,6 +704,9 @@ function _useScheduleMessageMutation(
           queryClient.invalidateQueries({
             queryKey: emailKeys.previews._def,
           });
+          queryClient.invalidateQueries({
+            queryKey: emailKeys.scheduledMessages._def,
+          });
         },
       },
       callbacks
