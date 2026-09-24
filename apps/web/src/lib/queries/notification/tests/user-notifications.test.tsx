@@ -9,7 +9,13 @@ import type { GetAllUserNotificationsResponse } from '@service-notification/gene
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { createClient, type Operation } from '@urql/core';
 import { ok } from 'neverthrow';
-import { type Accessor, createMemo, createSignal, type JSX } from 'solid-js';
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createSignal,
+  type JSX,
+} from 'solid-js';
 import { render } from 'solid-js/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { filter, map, pipe } from 'wonka';
@@ -357,6 +363,72 @@ describe('useUserNotificationsQuery transport facade', () => {
 
   afterEach(() => {
     testQueryClient.clear();
+  });
+
+  it('defers the full GraphQL feed until a data/status reader needs it, preserving pagination', async () => {
+    createGraphqlQueryMock.mockClear();
+    restUserNotificationsMock.mockClear();
+    const fetchNextPage = vi.fn(async () => {});
+    const refetch = vi.fn(async () => {});
+    createGraphqlQueryMock.mockReturnValue({
+      data: [],
+      error: null,
+      isLoading: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      hasNextPage: true,
+      fetchNextPage,
+      refetch,
+    });
+    let query!: UserNotificationsQuery;
+    const dispose = renderWithClient(() => {
+      query = useUserNotificationsQuery(() => ({ limit: 500 }));
+      return <div />;
+    });
+    try {
+      expect(query.transport).toBe('graphql');
+      expect(query.isStarted).toBe(false);
+      expect(createGraphqlQueryMock).not.toHaveBeenCalled();
+      expect(restUserNotificationsMock).not.toHaveBeenCalled();
+      expect(query.isLoading).toBe(false);
+      expect(query.isStarted).toBe(true);
+      expect(query.data).toEqual([]);
+      expect(createGraphqlQueryMock).toHaveBeenCalledOnce();
+      expect(query.hasNextPage).toBe(true);
+      await query.fetchNextPage();
+      await query.refetch();
+      expect(fetchNextPage).toHaveBeenCalledOnce();
+      expect(refetch).toHaveBeenCalledWith({
+        requestPolicy: 'network-only',
+        throwOnError: true,
+      });
+      expect(createGraphqlQueryMock).toHaveBeenCalledOnce();
+    } finally {
+      dispose();
+    }
+  });
+
+  it('notifies gated consumers only after the lazy feed has been constructed', () => {
+    createGraphqlQueryMock.mockClear();
+    const reads = vi.fn();
+    let query!: UserNotificationsQuery;
+    const dispose = renderWithClient(() => {
+      query = useUserNotificationsQuery(() => ({ limit: 500 }));
+      createEffect(() => {
+        if (query.isStarted) reads(query.data);
+      });
+      return <div />;
+    });
+    try {
+      expect(query.isStarted).toBe(false);
+      expect(reads).not.toHaveBeenCalled();
+      expect(createGraphqlQueryMock).not.toHaveBeenCalled();
+      expect(query.isLoading).toBe(false);
+      expect(reads).toHaveBeenCalledExactlyOnceWith([]);
+      expect(createGraphqlQueryMock).toHaveBeenCalledOnce();
+    } finally {
+      dispose();
+    }
   });
 
   it('reads active notifications from the GraphQL query', () => {
@@ -1054,6 +1126,43 @@ describe('optimisticInsertNotification', () => {
 
     expect(mockOptimisticUpdateSoupItemUpdatedAt).not.toHaveBeenCalled();
     expect(mockRefetchSoupEntity).not.toHaveBeenCalled();
+  });
+
+  it('restores an agent-session row on an agent notification', () => {
+    // An agent-session row marked done left the inbox; the next settled /
+    // waiting-for-input notification has to bring it back like any other
+    // notification-backed entity.
+    mockHasSoupEntity.mockReturnValue(true);
+    seedQueryCache([createMockNotificationPage([])]);
+
+    const agentNotification = createMockNotification({
+      entity_type: 'agent_session',
+      entity_id: 'session-1',
+      created_at: '2024-01-01T00:00:00.000Z',
+      notification_event_type: 'agent_session_settled',
+      notification_metadata: {
+        tag: 'agent_session_settled',
+        content: {
+          sessionName: 'Fix mark done',
+          excerpt: 'Done.',
+        },
+      },
+    } as unknown as Partial<UnifiedNotification>);
+
+    optimisticInsertNotification(agentNotification);
+
+    expect(mockOptimisticUpdateSoupItemUpdatedAt).toHaveBeenCalledWith(
+      'session-1',
+      'agentSession',
+      '2024-01-01T00:00:00.000Z'
+    );
+    expect(vi.mocked(bumpSoupEntityNotifiedAt)).toHaveBeenCalledWith(
+      'session-1',
+      '2024-01-01T00:00:00.000Z'
+    );
+    expect(
+      vi.mocked(restoreSoupEntityToDoneFilteredQueries)
+    ).toHaveBeenCalledWith('session-1', 'unseen');
   });
 
   it('should skip soup update for unsupported entity types', () => {
