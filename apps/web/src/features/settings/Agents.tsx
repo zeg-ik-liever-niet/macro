@@ -3,6 +3,7 @@ import { ModelCatalogPicker } from '@core/component/AI/component/input/ModelCata
 import { isLargeModelCatalog } from '@core/component/AI/component/input/modelCatalog';
 import { MODEL_PRETTYNAME, Model } from '@core/component/AI/constant/model';
 import { toast } from '@core/component/Toast/Toast';
+import { AGENTS_DESCRIPTION } from '@core/constant/agentCopy';
 import { claudeCloud } from '@core/constant/featureFlags';
 import {
   MACRO_AGENT_BOT_ID,
@@ -247,7 +248,7 @@ export function Agents() {
     <>
       <SettingsPage
         title="Agents"
-        description="Create agents with their own identity, instructions, and runtime."
+        description={AGENTS_DESCRIPTION}
         actions={
           <Button variant="cta" size="sm" onClick={() => setCreating(true)}>
             <PlusIcon />

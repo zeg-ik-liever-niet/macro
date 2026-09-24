@@ -9,6 +9,10 @@ import {
 } from '@core/component/AI/constant/model';
 import { toast } from '@core/component/Toast/Toast';
 import {
+  AGENTS_DESCRIPTION,
+  RUNTIMES_DESCRIPTION,
+} from '@core/constant/agentCopy';
+import {
   CURSOR_BOT_HANDLE,
   CURSOR_BOT_ID,
   CURSOR_BOT_NAME,
@@ -59,7 +63,7 @@ import { runtimeLabel } from '../core/roster';
 const KIND = {
   agent: {
     title: 'Agents',
-    desc: 'Create agents with their own identity, instructions, and skills.',
+    desc: AGENTS_DESCRIPTION,
     cta: 'Create agent',
     empty: 'No agents here yet.',
   },
@@ -315,7 +319,7 @@ export function RosterPage(props: {
             </Section>
             <Section
               title="Runtimes"
-              description="Where coding agents run. Built-in runtimes are always available; paired runtimes come and go with your machine."
+              description={RUNTIMES_DESCRIPTION}
               card={false}
             >
               <div class="scard runtimes">

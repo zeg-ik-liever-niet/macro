@@ -1,6 +1,7 @@
 import { ModelCatalogPicker } from '@core/component/AI/component/input/ModelCatalogPicker';
 import { isLargeModelCatalog } from '@core/component/AI/component/input/modelCatalog';
 import { toast } from '@core/component/Toast/Toast';
+import { RUNTIMES_DESCRIPTION } from '@core/constant/agentCopy';
 import { MACRO_HARNESS_NAME } from '@core/constant/macroAgent';
 import { ThrownResultError } from '@core/util/result';
 import CursorIcon from '@icon/wide-cursor-ide.svg';
@@ -153,10 +154,7 @@ export function Harness() {
   };
 
   return (
-    <SettingsPage
-      title="Harness"
-      description="Configure how agents run for your Macro workspace."
-    >
+    <SettingsPage title="Harness" description={RUNTIMES_DESCRIPTION}>
       <SettingsCard>
         <section class="flex gap-4 px-6 py-5">
           <HarnessIcon>
